@@ -243,8 +243,43 @@ def dict_to_html(dictionary):
 
 
 def print_dict(dictionary):
-    html = dict_to_html(dictionary)
-    display(HTML(html))
+    # html = dict_to_html(dictionary)
+    # display(HTML(html))
+    def print1(a,b,n=0):
+        if len(a) < 5:
+            print('\t'*n, '{}:\t\t{}'.format(a, b))
+        elif len(a) < 12:
+            print('\t'*n, '{}:\t{}'.format(a, b))
+        else:
+            print('\t'*n, '{}:{}'.format(a, b))
+
+    def print2(dic, n=None, nodash=True):
+        if n is None:
+            n = 0
+        # print(n)
+        for k, v in dic.items():
+            if nodash:
+                if isinstance(v, dict):
+                    print('\t'*n, '{}:'.format(k))
+                    print2(v, n=n+1)
+                elif isinstance(v, list):
+                    print('\t'*n, '{}:'.format(k))
+                    if isinstance(v[0], dict):
+                        for dicx in v:
+                            print2(dicx, n=n+1, nodash=False)
+                    else:   # isinstance(v[0], str):
+                        [print('\t'*(n), ' '*7, '- {}'.format(vj), sep='') for vj in v]
+                else:   # isinstance(v, str):
+                    print1(k, v, n=n)
+            else:   
+                # need plot dash
+                print('\t'*(n-1), ' '*5, '- ', end='plot dash')
+                print1(k, v, n=0)
+                nodash ^= True      # flip bool, set to True
+
+    print2(dictionary)
+    return None
+
 
 
 def offset_alias_to_seconds(alias):
