@@ -42,10 +42,10 @@ def convert_redd(redd_path, output_filename, format='HDF'):
     # Convert raw data to DataStore
     _convert(redd_path, store, _redd_measurement_mapping_func, 'US/Eastern')
 
-    s=join(get_module_directory(),
-                              'dataset_converters',
-                              'redd',
-                              'metadata')
+    # s=join(get_module_directory(),
+    #                           'dataset_converters',
+    #                           'redd',
+    #                           'metadata')
 
 
     # Add metadata
