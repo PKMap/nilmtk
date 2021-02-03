@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import unittest
 
-from .testingtools import data_dir
+from nilmtk.tests.testingtools import data_dir
 from datetime import timedelta
 from nilmtk.datastore import HDFDataStore, CSVDataStore, TmpDataStore
 from nilmtk import TimeFrame
@@ -165,6 +165,7 @@ class TestTmpDataStore(unittest.TestCase, SuperTestDataStore):
     @classmethod
     def tearDownClass(cls):
         cls.datastore.close()
+        pass
 
 
 if __name__ == '__main__':
