@@ -1,7 +1,7 @@
 from nilmtk.dataset import DataSet
 from nilmtk.metergroup import MeterGroup
 import pandas as pd
-from nilmtk.losses import *
+from nilmtk.losses import mae, rmse, f1score, relative_error, r2score, nde, nep
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
@@ -331,8 +331,11 @@ class API():
             for metric in self.metrics:
                 try:
                     loss_function = globals()[metric]                
-                except:
-                    print ("Loss function ",metric, " is not supported currently!")
+                except KeyError:
+                    print ("Loss function `{}` is not supported currently!".format(metric))
+                    continue
+                except Exception as r:
+                    print("Loss function got error: {}".format(r))
                     continue
 
                 computed_metric={}
