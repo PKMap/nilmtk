@@ -242,14 +242,14 @@ def dict_to_html(dictionary):
     return html
 
 
-def print_dict(dictionary):
-    # html = dict_to_html(dictionary)
-    # display(HTML(html))
+def print_dict(dictionary, old:bool=True):
+
     def print1(a,b,n=0):
-        if len(a) < 5:
-            print('\t'*n, '{}:\t\t{}'.format(a, b))
-        elif len(a) < 12:
-            print('\t'*n, '{}:\t{}'.format(a, b))
+        if isinstance(a, str):
+            if len(a) < 5:
+                print('\t'*n, '{}:\t\t{}'.format(a, b))
+            elif len(a) < 12:
+                print('\t'*n, '{}:\t{}'.format(a, b))
         else:
             print('\t'*n, '{}:{}'.format(a, b))
 
@@ -273,11 +273,14 @@ def print_dict(dictionary):
                     print1(k, v, n=n)
             else:   
                 # need plot dash
-                print('\t'*(n-1), ' '*5, '- ', end='plot dash')
+                print('\t'*(n-1), ' '*5, '- ', end='')
                 print1(k, v, n=0)
                 nodash ^= True      # flip bool, set to True
-
-    print2(dictionary)
+    if old:
+        html = dict_to_html(dictionary)
+        display(HTML(html))
+    else:
+        print2(dictionary)
     return None
 
 
