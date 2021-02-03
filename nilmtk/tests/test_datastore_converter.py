@@ -4,8 +4,8 @@ import os
 import shutil
 
 def test_convert_random_dataset():
-    input_filepath = 'data/random.h5'
-    output_filepath = 'data/random_csv'
+    input_filepath = r'C:\Users\CVLab\Documents\nilm\nilmtk\data\random.h5'
+    output_filepath = r'C:\Users\CVLab\Documents\nilm\nilmtk\data\random_csv'
 
     if os.path.isdir(output_filepath):
         shutil.rmtree(output_filepath)

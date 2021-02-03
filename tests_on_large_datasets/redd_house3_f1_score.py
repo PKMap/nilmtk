@@ -8,7 +8,7 @@ This file replicates issue #376 (which should now be fixed)
 https://github.com/nilmtk/nilmtk/issues/376
 """
 
-data_dir = '/data'
+data_dir = r'C:\Users\CVLab\Documents\nilm\expm1\__data'
 building_number = 3
 disag_filename = join(data_dir, 'disag-fhmm' + str(building_number) + '.h5')
 
