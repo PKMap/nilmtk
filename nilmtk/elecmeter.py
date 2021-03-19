@@ -426,7 +426,8 @@ class ElecMeter(Hashable, Electric):
             if 'limit' not in resample_kwargs:
                 default_sample_period = self.sample_period()
                 sample_period = kwargs.get('sample_period', default_sample_period)
-                
+                if sample_period is None:
+                    sample_period = default_sample_period
                 if default_sample_period is not None and sample_period < default_sample_period:
                     warn("The provided sample_period ({}) is shorter than the meter's sample_period ({})".format(
                         sample_period, default_sample_period
