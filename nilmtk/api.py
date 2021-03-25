@@ -283,7 +283,7 @@ class API():
                 if self.DROP_ALL_NANS and self.site_only:
                     test_mains, _= self.dropna(test_mains,[])
 
-                if self.site_only != True:
+                if not self.site_only:
                     appliance_readings=[]
 
                     for appliance in self.appliances:
@@ -301,20 +301,21 @@ class API():
                     for i, appliance_name in enumerate(self.appliances):
                         self.test_submeters.append((appliance_name,[appliance_readings[i]]))
 
+                    if self.do_pkm:
+                        p1 = PKMap(test.buildings[building], no_count=True, sample_period=self.sample_period)
+                        d1 = p1.data0['active'].loc[test_mains.index]
+                        p1.data0['active'] = d1
+                        self.pkmap1[building] = p1
+                        d2 = d1>11
+                        print('counting pk_keys ...', end='\r')
+                        self.pkkeys1[building] = pd.DataFrame(np.array([''.join([str(int(u)) for u in k]) for k in d2.itertuples(index=False)]), 
+                                                            index=d1.index, columns=appliance_readings[0].columns)
+                        pass        # to set a breakpoint
+
                 self.test_mains = [test_mains]
                 self.storing_key = str(dataset) + "_" + str(building) 
                 self.call_predict(self.classifiers, test.metadata["timezone"])
                 
-                if self.do_pkm:
-                    p1 = PKMap(test.buildings[building], no_count=True, sample_period=self.sample_period)
-                    d1 = p1.data0['active'].loc[test_mains.index]
-                    p1.data0['active'] = d1
-                    self.pkmap1[building] = p1
-                    d2 = d1>11
-                    print('counting pk_keys ...', end='\r')
-                    self.pkkeys1[building] = pd.DataFrame(np.array([''.join([str(int(u)) for u in k]) for k in d2.itertuples(index=False)]), 
-                                                        index=d1.index, columns=appliance_readings[0].columns)
-                    pass        # to set a 
 
     def dropna(self,mains_df, appliance_dfs=[]):
         """
