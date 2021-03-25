@@ -2,12 +2,20 @@ from nilmtk.dataset import DataSet
 from nilmtk.metergroup import MeterGroup
 import pandas as pd
 from nilmtk.losses import mae, rmse, f1score, relative_error, r2score, nde, nep
+from nilmtk.losses import recall, precision
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
 from IPython.display import clear_output
 
+from time import time
+try:
+    from pkmap import PKMap
+    no_pkmap = False
+except ModuleNotFoundError:
+    no_pkmap = True
 
+# try some changes!!
 class API():
 
     """
@@ -43,6 +51,10 @@ class API():
         self.display_predictions = params.get('display_predictions', False)
         self.DROP_ALL_NANS = params.get("DROP_ALL_NANS", True)
         self.site_only = params.get('site_only',False)
+        if no_pkmap:
+            self.do_pkm = False
+        else:
+            self.do_pkm = params.get('do_pkm', False)
         self.experiment()
         
 
@@ -103,6 +115,9 @@ class API():
         else:
             print ("Joint Testing for all algorithms")
             self.test_jointly(d)
+
+            if self.do_pkm:
+                self.do1()
 
     def train_chunk_wise(self, clf, d, current_epoch):
         """
@@ -206,6 +221,9 @@ class API():
         for dataset in d:
             print("Loading data for ",dataset, " dataset")
             train=DataSet(d[dataset]['path'])
+            self.buildings = d[dataset]['buildings']
+            self.pkmap0 = {k:None for k in self.buildings}
+            self.pkkeys0 = {k:None for k in self.buildings}
             for building in d[dataset]['buildings']:
                 print("Loading building ... ",building)
                 train.set_window(start=d[dataset]['buildings'][building]['start_time'],end=d[dataset]['buildings'][building]['end_time'])
@@ -231,6 +249,16 @@ class API():
                 for i,appliance_name in enumerate(self.appliances):
                     self.train_submeters[i].append(appliance_readings[i])
 
+                if self.do_pkm:
+                    p0 = PKMap(train.buildings[building], no_count=True, sample_period=self.sample_period)
+                    d1 = p0.data0['active'].loc[train_df.index]
+                    p0.data0['active'] = d1
+                    self.pkmap0[building] = p0
+                    d2 = d1>11
+                    print('counting pk_keys0 ...', end='\r')
+                    self.pkkeys0[building] = pd.DataFrame(np.array([''.join([str(int(u)) for u in k]) for k in d2.itertuples(index=False)]), 
+                                                          index=d1.index, columns=appliance_readings[0].columns)
+
         appliance_readings = []
         for i,appliance_name in enumerate(self.appliances):
             appliance_readings.append((appliance_name, self.train_submeters[i]))
@@ -245,9 +273,13 @@ class API():
         for dataset in d:
             print("Loading data for ",dataset, " dataset")
             test=DataSet(d[dataset]['path'])
-            for building in d[dataset]['buildings']:
+            self.buildings = d[dataset]['buildings']
+            self.pkmap1 = {k:None for k in self.buildings}
+            self.pkkeys1 = {k:None for k in self.buildings}
+            for building in self.buildings:
                 test.set_window(start=d[dataset]['buildings'][building]['start_time'],end=d[dataset]['buildings'][building]['end_time'])
-                test_mains=next(test.buildings[building].elec.mains().load(physical_quantity='power', ac_type=self.power['appliance'], sample_period=self.sample_period))
+                test_mains=next(test.buildings[building].elec.mains().load(physical_quantity='power', ac_type=self.power['mains'], sample_period=self.sample_period))
+                print('test len is {}'.format(len(test_mains.index)))
                 if self.DROP_ALL_NANS and self.site_only:
                     test_mains, _= self.dropna(test_mains,[])
 
@@ -272,7 +304,17 @@ class API():
                 self.test_mains = [test_mains]
                 self.storing_key = str(dataset) + "_" + str(building) 
                 self.call_predict(self.classifiers, test.metadata["timezone"])
-
+                
+                if self.do_pkm:
+                    p1 = PKMap(test.buildings[building], no_count=True, sample_period=self.sample_period)
+                    d1 = p1.data0['active'].loc[test_mains.index]
+                    p1.data0['active'] = d1
+                    self.pkmap1[building] = p1
+                    d2 = d1>11
+                    print('counting pk_keys ...', end='\r')
+                    self.pkkeys1[building] = pd.DataFrame(np.array([''.join([str(int(u)) for u in k]) for k in d2.itertuples(index=False)]), 
+                                                        index=d1.index, columns=appliance_readings[0].columns)
+                    pass        # to set a 
 
     def dropna(self,mains_df, appliance_dfs=[]):
         """
@@ -303,7 +345,6 @@ class API():
         """
         for name in self.methods:
             try:
-                                
                 clf=self.methods[name]
                 self.classifiers.append((name,clf))
 
@@ -413,3 +454,29 @@ class API():
         for app_name in gt.columns:
             error[app_name] = loss_function(gt[app_name],clf_pred[app_name])
         return pd.Series(error)        
+
+
+    def do1(self, ):
+        for bud in self.buildings:
+            print('doing `do1()` ...', ' '*16, end='\r')
+            b1 = self.gt_overall
+            b2 = self.pkkeys1[bud][('power', 'active')]
+            keys = set(b2.values)
+            self.gt_pkscore = {n:{m:None for m in self.metrics} for n, c in self.classifiers}
+            for name,clf in self.classifiers:
+                print('counting {}'.format(name),' '*16, end='\r')
+                b3 = self.pred_overall[name]
+                for metric in self.metrics:
+                    print('evaluating in {}...'.format(metric), ' '*12, )
+                    try:
+                        loss_function = globals()[metric]                
+                    except KeyError:
+                        print ("Loss function `{}` is not supported currently!".format(metric))
+                        continue
+                    except Exception as r:
+                        print("Loss function got error: {}".format(r))
+                        continue
+
+                    self.gt_pkscore[name][metric] = {key:loss_function(b1[b2==key], b3[b2==key]) for key in keys}
+
+        print('\a{0} all done! {0}'.format('='*6), ' '*24)
