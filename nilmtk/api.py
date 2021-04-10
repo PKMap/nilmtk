@@ -1,7 +1,7 @@
 from nilmtk.dataset import DataSet
 from nilmtk.metergroup import MeterGroup
 import pandas as pd
-from nilmtk.losses import mae, rmse, f1score, relative_error, r2score, nde, nep
+from nilmtk.losses import mae, rmse, f1score_, f1score, relative_error, r2score, nde, nep
 from nilmtk.losses import recall, precision
 import numpy as np
 import matplotlib.pyplot as plt
@@ -117,7 +117,8 @@ class API():
             self.test_jointly(d)
 
             if self.do_pkm:
-                self.do1()
+                # self.do1()
+                pass
 
     def train_chunk_wise(self, clf, d, current_epoch):
         """
@@ -212,7 +213,6 @@ class API():
 
 
     def train_jointly(self,clf,d):
-
         # This function has a few issues, which should be addressed soon
         print("............... Loading Data for training ...................")
         # store the train_main readings for all buildings
@@ -251,13 +251,15 @@ class API():
 
                 if self.do_pkm:
                     p0 = PKMap(train.buildings[building], no_count=True, sample_period=self.sample_period)
-                    d1 = p0.data0['active'].loc[train_df.index]
+                    d1 = p0.data0['active'].loc[train_df.index].dropna()
                     p0.data0['active'] = d1
                     self.pkmap0[building] = p0
                     d2 = d1>11
                     print('counting pk_keys0 ...', end='\r')
                     self.pkkeys0[building] = pd.DataFrame(np.array([''.join([str(int(u)) for u in k]) for k in d2.itertuples(index=False)]), 
                                                           index=d1.index, columns=appliance_readings[0].columns)
+                    if isinstance(self.do_pkm, int) or isinstance(self.do_pkm, str):
+                        self.pkmap0[building].BM(obj=self.do_pkm, no_show=True)
 
         appliance_readings = []
         for i,appliance_name in enumerate(self.appliances):
@@ -303,19 +305,17 @@ class API():
 
                     if self.do_pkm:
                         p1 = PKMap(test.buildings[building], no_count=True, sample_period=self.sample_period)
-                        d1 = p1.data0['active'].loc[test_mains.index]
+                        d1 = p1.data0['active'].loc[test_mains.index].dropna()
                         p1.data0['active'] = d1
                         self.pkmap1[building] = p1
                         d2 = d1>11
                         print('counting pk_keys ...', end='\r')
                         self.pkkeys1[building] = pd.DataFrame(np.array([''.join([str(int(u)) for u in k]) for k in d2.itertuples(index=False)]), 
                                                             index=d1.index, columns=appliance_readings[0].columns)
-                        pass        # to set a breakpoint
 
                 self.test_mains = [test_mains]
                 self.storing_key = str(dataset) + "_" + str(building) 
                 self.call_predict(self.classifiers, test.metadata["timezone"])
-                
 
     def dropna(self,mains_df, appliance_dfs=[]):
         """
